@@ -4,13 +4,14 @@ import (
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/uvalib/easystore/uvaeasystore"
 )
 
-// ServiceConfig defines all of the archives transfer service configuration paramaters
+// ServiceConfig defines the service configuration parameters
 type ServiceConfig struct {
-	SharedSecret string
-	ExpireDays   int
-	Port         int
+	Port  int
+	esCfg uvaeasystore.DatastoreS3Config
 }
 
 func ensureSet(env string) string {
@@ -49,13 +50,29 @@ func LoadConfiguration() *ServiceConfig {
 
 	var cfg ServiceConfig
 
-	cfg.SharedSecret = ensureSetAndNonEmpty("MINT_TOKEN_SHARED_SECRET")
-	cfg.ExpireDays = envToInt("MINT_TOKEN_EXPIRE_DAYS")
-	cfg.Port = envToInt("MINT_TOKEN_SERVICE_PORT")
+	cfg.Port = envToInt("ES_SERVICE_PORT")
 
-	log.Printf("[CONFIG] SharedSecret  = [REDACTED]")
-	log.Printf("[CONFIG] ExpireDays    = [%d]", cfg.ExpireDays)
-	log.Printf("[CONFIG] Port          = [%d]", cfg.Port)
+	cfg.esCfg.Bucket = ensureSetAndNonEmpty("ES_BUCKET")
+	cfg.esCfg.DbHost = ensureSetAndNonEmpty("ES_DBHOST")
+	cfg.esCfg.DbPort = envToInt("ES_DBPORT")
+	cfg.esCfg.DbName = ensureSetAndNonEmpty("ES_DBNAME")
+	cfg.esCfg.DbUser = ensureSetAndNonEmpty("ES_DBUSER")
+	cfg.esCfg.DbPassword = ensureSetAndNonEmpty("ES_DBPASS")
+	cfg.esCfg.DbTimeout = envToInt("ES_DBTIMEOUT")
+	cfg.esCfg.BusName = ensureSetAndNonEmpty("ES_BUS_NAME")
+	cfg.esCfg.SourceName = ensureSetAndNonEmpty("ES_SOURCE_NAME")
+
+	log.Printf("[CONFIG] Port       = [%d]", cfg.Port)
+	log.Printf("[CONFIG] DbHost     = [%s]", cfg.esCfg.DbHost)
+	log.Printf("[CONFIG] DbPort     = [%d]", cfg.esCfg.DbPort)
+	log.Printf("[CONFIG] DbName     = [%s]", cfg.esCfg.DbName)
+	log.Printf("[CONFIG] DbUser     = [%s]", cfg.esCfg.DbUser)
+	log.Printf("[CONFIG] DbPassword = [REDACTED]")
+	log.Printf("[CONFIG] DbTimeout  = [%d]", cfg.esCfg.DbTimeout)
+	log.Printf("[CONFIG] BusName    = [%s]", cfg.esCfg.BusName)
+	log.Printf("[CONFIG] SourceName = [%s]", cfg.esCfg.SourceName)
+
+	cfg.esCfg.Log = log.Default()
 
 	return &cfg
 }
