@@ -1,0 +1,6 @@
+/.idea
+/bin
+/pkg
+/scripts
+tmp
+env.*
