@@ -4,7 +4,7 @@
 FROM public.ecr.aws/docker/library/golang:1.24.3-alpine3.21 AS builder
 
 # update the packages
-RUN apk update && apk upgrade && apk add --no-cache make
+RUN apk update && apk upgrade && apk add --no-cache make gcc sqlite-dev musl-dev
 
 WORKDIR /build
 COPY go.mod go.sum Makefile ./
