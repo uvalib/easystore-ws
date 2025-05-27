@@ -42,8 +42,17 @@ func (s *serviceImpl) HealthCheck(c *gin.Context) {
 		Healthy bool   `json:"healthy"`
 		Message string `json:"message,omitempty"`
 	}
+
+	msg := ""
+	err := s.EasyStore.Check()
+	if err != nil {
+		msg = err.Error()
+	}
 	hcMap := make(map[string]hcResp)
-	hcMap["mint-token"] = hcResp{Healthy: true}
+	hcMap["easystore"] = hcResp{
+		Healthy: err == nil,
+		Message: msg,
+	}
 
 	c.JSON(http.StatusOK, hcMap)
 }

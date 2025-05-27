@@ -10,8 +10,9 @@ import (
 
 // ServiceConfig defines the service configuration parameters
 type ServiceConfig struct {
-	Port  int
-	esCfg uvaeasystore.DatastoreS3Config
+	Port int
+	//	esCfg uvaeasystore.DatastoreS3Config
+	esCfg uvaeasystore.DatastorePostgresConfig
 }
 
 func ensureSet(env string) string {
@@ -52,7 +53,7 @@ func LoadConfiguration() *ServiceConfig {
 
 	cfg.Port = envToInt("ES_SERVICE_PORT")
 
-	cfg.esCfg.Bucket = ensureSetAndNonEmpty("ES_BUCKET")
+	//cfg.esCfg.Bucket = ensureSetAndNonEmpty("ES_BUCKET")
 	cfg.esCfg.DbHost = ensureSetAndNonEmpty("ES_DBHOST")
 	cfg.esCfg.DbPort = envToInt("ES_DBPORT")
 	cfg.esCfg.DbName = ensureSetAndNonEmpty("ES_DBNAME")
@@ -63,6 +64,7 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.esCfg.SourceName = ensureSetAndNonEmpty("ES_SOURCE_NAME")
 
 	log.Printf("[CONFIG] Port       = [%d]", cfg.Port)
+	//log.Printf("[CONFIG] Bucket     = [%s]", cfg.esCfg.Bucket)
 	log.Printf("[CONFIG] DbHost     = [%s]", cfg.esCfg.DbHost)
 	log.Printf("[CONFIG] DbPort     = [%d]", cfg.esCfg.DbPort)
 	log.Printf("[CONFIG] DbName     = [%s]", cfg.esCfg.DbName)
