@@ -5,8 +5,11 @@ go 1.24.3
 require (
 	github.com/gin-contrib/gzip v1.2.3
 	github.com/gin-gonic/gin v1.10.1
-	github.com/uvalib/easystore/uvaeasystore v0.0.0-20250527171230-067649cdc3c3
 )
+
+require github.com/uvalib/easystore/uvaeasystore v0.0.0
+
+replace github.com/uvalib/easystore/uvaeasystore => ../easystore/uvaeasystore
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect

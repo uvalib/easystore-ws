@@ -41,8 +41,19 @@ func main() {
 	router.GET("/favicon.ico", svc.IgnoreFavicon)
 	router.GET("/version", svc.GetVersion)
 	router.GET("/healthcheck", svc.HealthCheck)
-	//router.GET("/mint", svc.MintToken)
-	//router.GET("/renew", svc.RenewToken)
+
+	// get a single object
+	router.GET("/:ns/:id", svc.GetObject)
+	// get many objects
+	router.PUT("/:ns", svc.GetObjects)
+	// object search
+	router.PUT("/:ns/search", svc.SearchObjects)
+	// create a new object
+	router.POST("/:ns", svc.CreateObject)
+	// update an existing object
+	router.PUT("/:ns/:id", svc.UpdateObject)
+	// delete an existing object
+	router.DELETE("/:ns/:id", svc.DeleteObject)
 
 	portStr := fmt.Sprintf(":%d", cfg.Port)
 	log.Fatal(router.Run(portStr))

@@ -1,16 +1,19 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/easystore/uvaeasystore"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // this is our service implementation
 type serviceImpl struct {
-	EasyStore uvaeasystore.EasyStore
-	cfg       *ServiceConfig
+	es  uvaeasystore.EasyStore
+	cfg *ServiceConfig
 }
 
 func NewService(cfg *ServiceConfig) *serviceImpl {
@@ -20,7 +23,7 @@ func NewService(cfg *ServiceConfig) *serviceImpl {
 		log.Fatalf("create easystore failed: %s", err.Error())
 	}
 
-	return &serviceImpl{EasyStore: es, cfg: cfg}
+	return &serviceImpl{es: es, cfg: cfg}
 }
 
 // IgnoreFavicon is a dummy to handle browser favicon requests without warnings
@@ -44,7 +47,7 @@ func (s *serviceImpl) HealthCheck(c *gin.Context) {
 	}
 
 	msg := ""
-	err := s.EasyStore.Check()
+	err := s.es.Check()
 	if err != nil {
 		msg = err.Error()
 	}
@@ -57,89 +60,245 @@ func (s *serviceImpl) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, hcMap)
 }
 
-// MintToken creates a new token
-//func (s *serviceImpl) MintToken(c *gin.Context) {
-//
-//	tMap := make(map[string]string)
-//	token, expires := s.makeToken()
-//	tMap["token"] = token
-//	tMap["expires"] = expires.Format("2006-01-02T15:04:05-0700")
-//	c.JSON(http.StatusOK, tMap)
-//}
-//
-//// RenewToken validates the supplied tonen and if valid yields a new token
-//func (s *serviceImpl) RenewToken(c *gin.Context) {
-//
-//	authorization := c.Request.Header.Get("Authorization")
-//	components := strings.Split(strings.Join(strings.Fields(authorization), " "), " ")
-//
-//	// must have two components, the first of which is "Token", and the second a non-empty token
-//	if len(components) != 2 || components[0] != "Token" || components[1] == "" {
-//		log.Printf("ERROR: invalid Authorization header: [%s]", authorization)
-//		c.AbortWithStatus(http.StatusUnauthorized)
-//		return
-//	}
-//
-//	// validate the token
-//	if s.validateToken(components[1]) == false {
-//		log.Printf("ERROR: invalid token in header: [%s]", components[1])
-//		c.AbortWithStatus(http.StatusUnauthorized)
-//		return
-//	}
-//
-//	tMap := make(map[string]string)
-//	token, expires := s.makeToken()
-//	tMap["token"] = token
-//	tMap["expires"] = expires.Format("2006-01-02T15:04:05-0700")
-//	c.JSON(http.StatusOK, tMap)
-//}
-//
-//// creates a new token
-//func (s *serviceImpl) makeToken() (string, time.Time) {
-//
-//	// Declare the expiration time of the token
-//	expirationTime := time.Now().Add(time.Duration(s.cfg.ExpireDays*24) * time.Hour)
-//
-//	// Create the JWT claims, which includes expiry time
-//	claims := &jwt.StandardClaims{
-//		// In JWT, the expiry time is expressed as unix milliseconds
-//		ExpiresAt: expirationTime.Unix(),
-//	}
-//
-//	// Declare the token with the algorithm used for signing, and the claims
-//	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-//
-//	// Create the JWT string
-//	tokenString, err := token.SignedString([]byte(s.cfg.SharedSecret))
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	return tokenString, expirationTime
-//}
-//
-//// validates the supplied token
-//func (s *serviceImpl) validateToken(token string) bool {
-//
-//	// Initialize a new instance of the standard claims
-//	claims := &jwt.StandardClaims{}
-//
-//	tkn, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-//		return []byte(s.cfg.SharedSecret), nil
-//	})
-//
-//	if err != nil {
-//		log.Printf("ERROR: JWT parse returns: %s", err.Error())
-//		return false
-//	}
-//
-//	if !tkn.Valid {
-//		log.Printf("ERROR: JWT is INVALID")
-//		return false
-//	} else {
-//		log.Printf("INFO: token is valid, Expires %s", time.Unix(claims.ExpiresAt, 0))
-//	}
-//	return true
-//}
+// GetObject gets a single object
+func (s *serviceImpl) GetObject(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+
+	// which components are being requested?
+	attribs := c.DefaultQuery("attribs", "none")
+	components := decodeComponents(attribs)
+
+	log.Printf("INFO: request [%s/%s]", ns, id)
+
+	o, err := s.es.GetByKey(ns, id, components)
+	if err != nil {
+		if errors.Is(err, uvaeasystore.ErrNotFound) {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		log.Printf("ERROR: %s", err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, o)
+}
+
+// GetObjects gets a list of objects
+func (s *serviceImpl) GetObjects(c *gin.Context) {
+
+	ns := c.Param("ns")
+
+	var req getObjectsRequest
+	if jsonErr := c.BindJSON(&req); jsonErr != nil {
+		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
+		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	log.Printf("INFO: request [%s/%s]", ns, strings.Join(req.Ids, ","))
+
+	results, err := s.es.GetByKeys(ns, req.Ids, uvaeasystore.AllComponents)
+	if err != nil {
+		if errors.Is(err, uvaeasystore.ErrNotFound) {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		log.Printf("ERROR: %s", err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	var resp getObjectsResponse
+	resp.Results = make([]uvaeasystore.EasyStoreObject, 0)
+
+	// process results as appropriate
+	if results.Count() != 0 {
+		total := results.Count()
+		log.Printf("INFO: located %d object(s)...", total)
+		var obj uvaeasystore.EasyStoreObject
+		obj, err = results.Next()
+		for err == nil {
+			resp.Results = append(resp.Results, obj)
+			obj, err = results.Next()
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (s *serviceImpl) SearchObjects(c *gin.Context) {
+
+	ns := c.Param("ns")
+
+	var req uvaeasystore.EasyStoreObjectFields
+	if jsonErr := c.BindJSON(&req); jsonErr != nil {
+		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
+		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	//log.Printf("INFO: request [%s/%s]", ns, strings.Join(req.Ids, ","))
+
+	results, err := s.es.GetByFields(ns, req, uvaeasystore.AllComponents)
+	if err != nil {
+		if errors.Is(err, uvaeasystore.ErrNotFound) {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		log.Printf("ERROR: %s", err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	var resp searchObjectsResponse
+	resp.Results = make([]uvaeasystore.EasyStoreObject, 0)
+
+	// process results as appropriate
+	if results.Count() != 0 {
+		total := results.Count()
+		log.Printf("INFO: located %d object(s)...", total)
+		var obj uvaeasystore.EasyStoreObject
+		obj, err = results.Next()
+		for err == nil {
+			resp.Results = append(resp.Results, obj)
+			obj, err = results.Next()
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (s *serviceImpl) CreateObject(c *gin.Context) {
+
+	ns := c.Param("ns")
+
+	var req uvaeasystore.EasyStoreObject
+	if jsonErr := c.BindJSON(&req); jsonErr != nil {
+		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
+		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	// validate that the namespace is consistent
+	if req.Namespace() != ns {
+		log.Printf("ERROR: inconsistent namespaces in request %s/%s", req.Namespace(), ns)
+		err := requestError{Message: "Inconsistent namespaces", Details: fmt.Sprintf("%s/%s", req.Namespace(), ns)}
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	o, err := s.es.Create(req)
+	if err != nil {
+		log.Printf("ERROR: %s", err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// cleanup the return object
+	o.SetFiles(nil)
+	o.SetMetadata(nil)
+	o.SetFields(uvaeasystore.DefaultEasyStoreFields())
+
+	c.JSON(http.StatusCreated, o)
+}
+
+func (s *serviceImpl) UpdateObject(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+
+	var req uvaeasystore.EasyStoreObject
+	if jsonErr := c.BindJSON(&req); jsonErr != nil {
+		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
+		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	// validate that the namespace is consistent
+	if req.Namespace() != ns {
+		log.Printf("ERROR: inconsistent namespaces in request %s/%s", req.Namespace(), ns)
+		err := requestError{Message: "Inconsistent namespaces", Details: fmt.Sprintf("%s/%s", req.Namespace(), ns)}
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	// validate that the id is consistent
+	if req.Namespace() != ns {
+		log.Printf("ERROR: inconsistent id in request %s/%s", req.Id(), id)
+		err := requestError{Message: "Inconsistent id", Details: fmt.Sprintf("%s/%s", req.Id(), id)}
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	// FIXME
+	o, err := s.es.Update(req, uvaeasystore.AllComponents)
+	if err != nil {
+		log.Printf("ERROR: %s", err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// cleanup the return object
+	o.SetFiles(nil)
+	o.SetMetadata(nil)
+	o.SetFields(uvaeasystore.DefaultEasyStoreFields())
+
+	c.JSON(http.StatusOK, o)
+}
+
+// DeleteObject deletes a single object
+func (s *serviceImpl) DeleteObject(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+
+	// need to include the vtag
+	vtag := c.DefaultQuery("vtag", "unknown")
+
+	o := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
+	_, err := s.es.Delete(o, uvaeasystore.AllComponents)
+	if err != nil {
+		if errors.Is(err, uvaeasystore.ErrNotFound) {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		log.Printf("ERROR: %s", err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// standard delete response
+	r := emptyStruct{}
+	c.JSON(http.StatusNoContent, r)
+}
+
+func decodeComponents(attribs string) uvaeasystore.EasyStoreComponents {
+	// short circuit special case
+	if attribs == "all" {
+		return uvaeasystore.AllComponents
+	}
+
+	// the default, no components requested
+	components := uvaeasystore.BaseComponent
+
+	if strings.Contains(attribs, "fields") {
+		components += uvaeasystore.Fields
+	}
+	if strings.Contains(attribs, "files") {
+		components += uvaeasystore.Files
+	}
+	if strings.Contains(attribs, "metadata") {
+		components += uvaeasystore.Metadata
+	}
+	return components
+}
 
 //
 // end of file
