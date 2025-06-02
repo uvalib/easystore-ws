@@ -17,7 +17,8 @@ func main() {
 	cfg := LoadConfiguration()
 	svc := NewService(cfg)
 
-	gin.SetMode(gin.ReleaseMode)
+	//gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.DebugMode)
 	gin.DisableConsoleColor()
 	router := gin.Default()
 	router.Use(gzip.Gzip(gzip.DefaultCompression))

@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/easystore/uvaeasystore"
 	"log"
@@ -66,7 +65,7 @@ func (s *serviceImpl) GetObject(c *gin.Context) {
 	ns := c.Param("ns")
 	id := c.Param("id")
 
-	// which components are being requested?
+	// which components from the object are being requested?
 	attribs := c.DefaultQuery("attribs", "none")
 	components := decodeComponents(attribs)
 
@@ -75,11 +74,13 @@ func (s *serviceImpl) GetObject(c *gin.Context) {
 	o, err := s.es.GetByKey(ns, id, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			c.AbortWithStatus(http.StatusNotFound)
+			//c.AbortWithStatus(http.StatusNotFound)
+			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -91,24 +92,29 @@ func (s *serviceImpl) GetObjects(c *gin.Context) {
 
 	ns := c.Param("ns")
 
+	// which components from the object are being requested?
+	attribs := c.DefaultQuery("attribs", "none")
+	components := decodeComponents(attribs)
+
 	var req getObjectsRequest
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
 		return
 	}
 
 	log.Printf("INFO: request [%s/%s]", ns, strings.Join(req.Ids, ","))
 
-	results, err := s.es.GetByKeys(ns, req.Ids, uvaeasystore.AllComponents)
+	results, err := s.es.GetByKeys(ns, req.Ids, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			c.AbortWithStatus(http.StatusNotFound)
+			//c.AbortWithStatus(http.StatusNotFound)
+			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -134,24 +140,29 @@ func (s *serviceImpl) SearchObjects(c *gin.Context) {
 
 	ns := c.Param("ns")
 
+	// which components from the object are being requested?
+	attribs := c.DefaultQuery("attribs", "none")
+	components := decodeComponents(attribs)
+
 	var req uvaeasystore.EasyStoreObjectFields
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
 		return
 	}
 
 	//log.Printf("INFO: request [%s/%s]", ns, strings.Join(req.Ids, ","))
 
-	results, err := s.es.GetByFields(ns, req, uvaeasystore.AllComponents)
+	results, err := s.es.GetByFields(ns, req, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			c.AbortWithStatus(http.StatusNotFound)
+			//c.AbortWithStatus(http.StatusNotFound)
+			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -177,33 +188,32 @@ func (s *serviceImpl) CreateObject(c *gin.Context) {
 
 	ns := c.Param("ns")
 
-	var req uvaeasystore.EasyStoreObject
+	req := uvaeasystore.NewEasyStoreObject("", "")
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
 		return
 	}
 
 	// validate that the namespace is consistent
 	if req.Namespace() != ns {
 		log.Printf("ERROR: inconsistent namespaces in request %s/%s", req.Namespace(), ns)
-		err := requestError{Message: "Inconsistent namespaces", Details: fmt.Sprintf("%s/%s", req.Namespace(), ns)}
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, uvaeasystore.ErrBadParameter)
 		return
 	}
 
 	o, err := s.es.Create(req)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// cleanup the return object
-	o.SetFiles(nil)
-	o.SetMetadata(nil)
-	o.SetFields(uvaeasystore.DefaultEasyStoreFields())
+	//o.SetFiles(nil)
+	//o.SetMetadata(nil)
+	//o.SetFields(uvaeasystore.DefaultEasyStoreFields())
 
 	c.JSON(http.StatusCreated, o)
 }
@@ -213,42 +223,43 @@ func (s *serviceImpl) UpdateObject(c *gin.Context) {
 	ns := c.Param("ns")
 	id := c.Param("id")
 
-	var req uvaeasystore.EasyStoreObject
+	// which components from the object are being requested?
+	attribs := c.DefaultQuery("attribs", "none")
+	components := decodeComponents(attribs)
+
+	req := uvaeasystore.NewEasyStoreObject("", "")
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		err := requestError{Message: "Request is malformed or unsupported", Details: jsonErr.Error()}
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
 		return
 	}
 
 	// validate that the namespace is consistent
 	if req.Namespace() != ns {
 		log.Printf("ERROR: inconsistent namespaces in request %s/%s", req.Namespace(), ns)
-		err := requestError{Message: "Inconsistent namespaces", Details: fmt.Sprintf("%s/%s", req.Namespace(), ns)}
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, uvaeasystore.ErrBadParameter)
 		return
 	}
 
 	// validate that the id is consistent
-	if req.Namespace() != ns {
+	if req.Id() != id {
 		log.Printf("ERROR: inconsistent id in request %s/%s", req.Id(), id)
-		err := requestError{Message: "Inconsistent id", Details: fmt.Sprintf("%s/%s", req.Id(), id)}
-		c.JSON(http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, uvaeasystore.ErrBadParameter)
 		return
 	}
 
-	// FIXME
-	o, err := s.es.Update(req, uvaeasystore.AllComponents)
+	o, err := s.es.Update(req, components)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// cleanup the return object
-	o.SetFiles(nil)
-	o.SetMetadata(nil)
-	o.SetFields(uvaeasystore.DefaultEasyStoreFields())
+	//o.SetFiles(nil)
+	//o.SetMetadata(nil)
+	//o.SetFields(uvaeasystore.DefaultEasyStoreFields())
 
 	c.JSON(http.StatusOK, o)
 }
@@ -262,15 +273,21 @@ func (s *serviceImpl) DeleteObject(c *gin.Context) {
 	// need to include the vtag
 	vtag := c.DefaultQuery("vtag", "unknown")
 
+	// which components from the object are being requested?
+	attribs := c.DefaultQuery("attribs", "none")
+	components := decodeComponents(attribs)
+
 	o := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
-	_, err := s.es.Delete(o, uvaeasystore.AllComponents)
+	_, err := s.es.Delete(o, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			c.AbortWithStatus(http.StatusNotFound)
+			//c.AbortWithStatus(http.StatusNotFound)
+			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
