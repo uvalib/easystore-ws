@@ -74,13 +74,11 @@ func (s *serviceImpl) GetObject(c *gin.Context) {
 	o, err := s.es.GetByKey(ns, id, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			//c.AbortWithStatus(http.StatusNotFound)
-			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
+			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		//c.AbortWithStatus(http.StatusInternalServerError)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -99,7 +97,7 @@ func (s *serviceImpl) GetObjects(c *gin.Context) {
 	var req getObjectsRequest
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
+		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
 		return
 	}
 
@@ -108,13 +106,11 @@ func (s *serviceImpl) GetObjects(c *gin.Context) {
 	results, err := s.es.GetByKeys(ns, req.Ids, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			//c.AbortWithStatus(http.StatusNotFound)
-			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
+			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		//c.AbortWithStatus(http.StatusInternalServerError)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -147,22 +143,20 @@ func (s *serviceImpl) SearchObjects(c *gin.Context) {
 	var req uvaeasystore.EasyStoreObjectFields
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
+		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
 		return
 	}
 
-	//log.Printf("INFO: request [%s/%s]", ns, strings.Join(req.Ids, ","))
+	//log.Printf("INFO: request [%s/%s]", ns, strings.Join(req, ","))
 
 	results, err := s.es.GetByFields(ns, req, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			//c.AbortWithStatus(http.StatusNotFound)
-			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
+			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		//c.AbortWithStatus(http.StatusInternalServerError)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -191,14 +185,14 @@ func (s *serviceImpl) CreateObject(c *gin.Context) {
 	req := uvaeasystore.NewEasyStoreObject("", "")
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
+		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
 		return
 	}
 
 	// validate that the namespace is consistent
 	if req.Namespace() != ns {
 		log.Printf("ERROR: inconsistent namespaces in request %s/%s", req.Namespace(), ns)
-		c.JSON(http.StatusBadRequest, uvaeasystore.ErrBadParameter)
+		c.String(http.StatusBadRequest, uvaeasystore.ErrBadParameter.Error())
 		return
 	}
 
@@ -206,7 +200,7 @@ func (s *serviceImpl) CreateObject(c *gin.Context) {
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
 		//c.AbortWithStatus(http.StatusInternalServerError)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -230,29 +224,28 @@ func (s *serviceImpl) UpdateObject(c *gin.Context) {
 	req := uvaeasystore.NewEasyStoreObject("", "")
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-		c.JSON(http.StatusBadRequest, uvaeasystore.ErrDeserialize)
+		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
 		return
 	}
 
 	// validate that the namespace is consistent
 	if req.Namespace() != ns {
 		log.Printf("ERROR: inconsistent namespaces in request %s/%s", req.Namespace(), ns)
-		c.JSON(http.StatusBadRequest, uvaeasystore.ErrBadParameter)
+		c.String(http.StatusBadRequest, uvaeasystore.ErrBadParameter.Error())
 		return
 	}
 
 	// validate that the id is consistent
 	if req.Id() != id {
 		log.Printf("ERROR: inconsistent id in request %s/%s", req.Id(), id)
-		c.JSON(http.StatusBadRequest, uvaeasystore.ErrBadParameter)
+		c.String(http.StatusBadRequest, uvaeasystore.ErrBadParameter.Error())
 		return
 	}
 
 	o, err := s.es.Update(req, components)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
-		//c.AbortWithStatus(http.StatusInternalServerError)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -281,13 +274,11 @@ func (s *serviceImpl) DeleteObject(c *gin.Context) {
 	_, err := s.es.Delete(o, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			//c.AbortWithStatus(http.StatusNotFound)
-			c.JSON(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
+			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
 		log.Printf("ERROR: %s", err.Error())
-		//c.AbortWithStatus(http.StatusInternalServerError)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
