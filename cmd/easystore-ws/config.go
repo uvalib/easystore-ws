@@ -11,9 +11,9 @@ import (
 
 // ServiceConfig defines the service configuration parameters
 type ServiceConfig struct {
-	Port int
-	//esCfg uvaeasystore.DatastoreS3Config
-	esCfg uvaeasystore.DatastorePostgresConfig
+	Port  int
+	esCfg uvaeasystore.DatastoreS3Config
+	//esCfg uvaeasystore.DatastorePostgresConfig
 }
 
 func envWithDefault(env string, defaultValue string) string {
@@ -65,10 +65,10 @@ func LoadConfiguration() *ServiceConfig {
 
 	cfg.Port = envToInt("ES_SERVICE_PORT")
 
-	//cfg.esCfg.Bucket = ensureSetAndNonEmpty("ES_BUCKET")
+	cfg.esCfg.Bucket = ensureSetAndNonEmpty("ES_BUCKET")
 	//cfg.esCfg.SignerAccessKey = envWithDefault("SIGNER_ACCESS_KEY", "")
 	//cfg.esCfg.SignerSecretKey = envWithDefault("SIGNER_SECRET_KEY", "")
-	//cfg.esCfg.SignerExpireMinutes = envToInt("ES_SIGN_EXPIRE_MINUTES")
+	cfg.esCfg.SignerExpireMinutes = envToInt("ES_SIGN_EXPIRE_MINUTES")
 
 	cfg.esCfg.DbHost = ensureSetAndNonEmpty("ES_DBHOST")
 	cfg.esCfg.DbPort = envToInt("ES_DBPORT")
@@ -81,10 +81,10 @@ func LoadConfiguration() *ServiceConfig {
 
 	log.Printf("[CONFIG] Port               = [%d]", cfg.Port)
 
-	//log.Printf("[CONFIG] Bucket             = [%s]", cfg.esCfg.Bucket)
+	log.Printf("[CONFIG] Bucket             = [%s]", cfg.esCfg.Bucket)
 	//log.Printf("[CONFIG] SignerAccessKey    = [%s]", strings.Repeat("*", len(cfg.esCfg.SignerAccessKey)))
 	//log.Printf("[CONFIG] SignerSecretKey    = [%s]", strings.Repeat("*", len(cfg.esCfg.SignerAccessKey)))
-	//log.Printf("[CONFIG] SignerExpireMinutes = [%d]", cfg.esCfg.SignerExpireMinutes)
+	log.Printf("[CONFIG] SignerExpireMinutes = [%d]", cfg.esCfg.SignerExpireMinutes)
 
 	log.Printf("[CONFIG] DbHost             = [%s]", cfg.esCfg.DbHost)
 	log.Printf("[CONFIG] DbPort             = [%d]", cfg.esCfg.DbPort)
