@@ -66,8 +66,8 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.Port = envToInt("ES_SERVICE_PORT")
 
 	cfg.esCfg.Bucket = ensureSetAndNonEmpty("ES_BUCKET")
-	//cfg.esCfg.SignerAccessKey = envWithDefault("SIGNER_ACCESS_KEY", "")
-	//cfg.esCfg.SignerSecretKey = envWithDefault("SIGNER_SECRET_KEY", "")
+	cfg.esCfg.SignerAccessKey = envWithDefault("SIGNER_ACCESS_KEY", "")
+	cfg.esCfg.SignerSecretKey = envWithDefault("SIGNER_SECRET_KEY", "")
 	cfg.esCfg.SignerExpireMinutes = envToInt("ES_SIGN_EXPIRE_MINUTES")
 
 	cfg.esCfg.DbHost = ensureSetAndNonEmpty("ES_DBHOST")
@@ -79,21 +79,21 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.esCfg.BusName = ensureSetAndNonEmpty("ES_BUS_NAME")
 	cfg.esCfg.SourceName = ensureSetAndNonEmpty("ES_SOURCE_NAME")
 
-	log.Printf("[CONFIG] Port               = [%d]", cfg.Port)
+	log.Printf("[CONFIG] Port                = [%d]", cfg.Port)
 
-	log.Printf("[CONFIG] Bucket             = [%s]", cfg.esCfg.Bucket)
-	//log.Printf("[CONFIG] SignerAccessKey    = [%s]", strings.Repeat("*", len(cfg.esCfg.SignerAccessKey)))
-	//log.Printf("[CONFIG] SignerSecretKey    = [%s]", strings.Repeat("*", len(cfg.esCfg.SignerAccessKey)))
+	log.Printf("[CONFIG] Bucket              = [%s]", cfg.esCfg.Bucket)
+	log.Printf("[CONFIG] SignerAccessKey     = [%s]", strings.Repeat("*", len(cfg.esCfg.SignerAccessKey)))
+	log.Printf("[CONFIG] SignerSecretKey     = [%s]", strings.Repeat("*", len(cfg.esCfg.SignerAccessKey)))
 	log.Printf("[CONFIG] SignerExpireMinutes = [%d]", cfg.esCfg.SignerExpireMinutes)
 
-	log.Printf("[CONFIG] DbHost             = [%s]", cfg.esCfg.DbHost)
-	log.Printf("[CONFIG] DbPort             = [%d]", cfg.esCfg.DbPort)
-	log.Printf("[CONFIG] DbName             = [%s]", cfg.esCfg.DbName)
-	log.Printf("[CONFIG] DbUser             = [%s]", cfg.esCfg.DbUser)
-	log.Printf("[CONFIG] DbPassword         = [%s]", strings.Repeat("*", len(cfg.esCfg.DbPassword)))
-	log.Printf("[CONFIG] DbTimeout          = [%d]", cfg.esCfg.DbTimeout)
-	log.Printf("[CONFIG] BusName            = [%s]", cfg.esCfg.BusName)
-	log.Printf("[CONFIG] SourceName         = [%s]", cfg.esCfg.SourceName)
+	log.Printf("[CONFIG] DbHost              = [%s]", cfg.esCfg.DbHost)
+	log.Printf("[CONFIG] DbPort              = [%d]", cfg.esCfg.DbPort)
+	log.Printf("[CONFIG] DbName              = [%s]", cfg.esCfg.DbName)
+	log.Printf("[CONFIG] DbUser              = [%s]", cfg.esCfg.DbUser)
+	log.Printf("[CONFIG] DbPassword          = [%s]", strings.Repeat("*", len(cfg.esCfg.DbPassword)))
+	log.Printf("[CONFIG] DbTimeout           = [%d]", cfg.esCfg.DbTimeout)
+	log.Printf("[CONFIG] BusName             = [%s]", cfg.esCfg.BusName)
+	log.Printf("[CONFIG] SourceName          = [%s]", cfg.esCfg.SourceName)
 
 	cfg.esCfg.Log = log.Default()
 
