@@ -5,11 +5,10 @@ go 1.24.3
 require (
 	github.com/gin-contrib/gzip v1.2.3
 	github.com/gin-gonic/gin v1.10.1
-	github.com/uvalib/easystore/uvaeasystore v0.0.0-20250617163331-539af75db740
+	github.com/uvalib/easystore/uvaeasystore v0.0.0-20250618142002-6fd9516e2b0a
 )
 
 // for local development
-//require github.com/uvalib/easystore/uvaeasystore v0.0.0
 //replace github.com/uvalib/easystore/uvaeasystore => ../easystore/uvaeasystore
 
 require (

@@ -127,6 +127,8 @@ github.com/uvalib/easystore/uvaeasystore v0.0.0-20250617160916-9b49232a6d6a h1:2
 github.com/uvalib/easystore/uvaeasystore v0.0.0-20250617160916-9b49232a6d6a/go.mod h1:+qz3raM1bMUFIqJ1FkbhcuIHZWzi3d11ACnDX5AZAQk=
 github.com/uvalib/easystore/uvaeasystore v0.0.0-20250617163331-539af75db740 h1:Hg6n7tqNi1o8ywDlDPfoGPmvNXsEIV/Mv5QDGw//zLM=
 github.com/uvalib/easystore/uvaeasystore v0.0.0-20250617163331-539af75db740/go.mod h1:+qz3raM1bMUFIqJ1FkbhcuIHZWzi3d11ACnDX5AZAQk=
+github.com/uvalib/easystore/uvaeasystore v0.0.0-20250618142002-6fd9516e2b0a h1:Df5G8EJb0l+KodZ9KHMBlBIiB2Mk7dXPw/zDl5/ixj4=
+github.com/uvalib/easystore/uvaeasystore v0.0.0-20250618142002-6fd9516e2b0a/go.mod h1:+qz3raM1bMUFIqJ1FkbhcuIHZWzi3d11ACnDX5AZAQk=
 github.com/uvalib/librabus-sdk/uvalibrabus v0.0.0-20250520140939-0b78bc8b863f h1:foXanRAYw3jJxk0iTBWhHBBcWOwhAACzwsjlNr/CBBg=
 github.com/uvalib/librabus-sdk/uvalibrabus v0.0.0-20250520140939-0b78bc8b863f/go.mod h1:3zlSCNudbHP3Lj7BGfTju+2uSlWnDQ2uuLJev/ku8tg=
 golang.org/x/arch v0.18.0 h1:WN9poc33zL4AzGxqf8VtpKUnGvMi8O9lhNyBMF/85qc=
