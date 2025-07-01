@@ -17,8 +17,8 @@ func main() {
 	cfg := LoadConfiguration()
 	svc := NewService(cfg)
 
-	//gin.SetMode(gin.ReleaseMode)
-	gin.SetMode(gin.DebugMode)
+	gin.SetMode(gin.ReleaseMode)
+	//gin.SetMode(gin.DebugMode)
 	gin.DisableConsoleColor()
 	router := gin.Default()
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -28,15 +28,6 @@ func main() {
 	//corsCfg.AllowCredentials = true
 	//corsCfg.AddAllowHeaders("Authorization")
 	//router.Use(cors.New(corsCfg))
-	//p := ginprometheus.NewPrometheus("gin")
-
-	// roundabout setup of /metrics endpoint to avoid double-gzip of response
-	//router.Use(p.HandlerFunc())
-	//h := promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{DisableCompression: true}))
-
-	//router.GET(p.MetricsPath, func(c *gin.Context) {
-	//	h.ServeHTTP(c.Writer, c.Request)
-	//})
 
 	router.GET("/", svc.GetVersion)
 	router.GET("/favicon.ico", svc.IgnoreFavicon)
@@ -53,6 +44,8 @@ func main() {
 	router.POST("/:ns", svc.CreateObject)
 	// update an existing object
 	router.PUT("/:ns/:id", svc.UpdateObject)
+	// rename a blob from an existing object
+	router.POST("/:ns/:id", svc.RenameBlob)
 	// delete an existing object
 	router.DELETE("/:ns/:id", svc.DeleteObject)
 

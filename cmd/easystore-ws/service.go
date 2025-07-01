@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/easystore/uvaeasystore"
 	"log"
@@ -69,7 +70,8 @@ func (s *serviceImpl) GetObject(c *gin.Context) {
 	attribs := c.DefaultQuery("attribs", "none")
 	components := decodeComponents(attribs)
 
-	log.Printf("INFO: request [%s/%s]", ns, id)
+	// log request info
+	log.Printf("INFO: get object request [%s/%s] (attribs %s)", ns, id, attribs)
 
 	o, err := s.es.GetByKey(ns, id, components)
 	if err != nil {
@@ -94,14 +96,16 @@ func (s *serviceImpl) GetObjects(c *gin.Context) {
 	attribs := c.DefaultQuery("attribs", "none")
 	components := decodeComponents(attribs)
 
-	var req getObjectsRequest
+	var req uvaeasystore.GetObjectsRequest
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
 		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
 		return
 	}
 
-	log.Printf("INFO: request [%s/%s]", ns, strings.Join(req.Ids, ","))
+	// log request info
+	log.Printf("INFO: get objects request [%s] (attribs %s)", ns, attribs)
+	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
 
 	results, err := s.es.GetByKeys(ns, req.Ids, components)
 	if err != nil {
@@ -147,7 +151,9 @@ func (s *serviceImpl) SearchObjects(c *gin.Context) {
 		return
 	}
 
-	//log.Printf("INFO: request [%s/%s]", ns, strings.Join(req, ","))
+	// log request info
+	log.Printf("INFO: find request [%s] (attribs %s)", ns, attribs)
+	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
 
 	results, err := s.es.GetByFields(ns, req, components)
 	if err != nil {
@@ -196,6 +202,10 @@ func (s *serviceImpl) CreateObject(c *gin.Context) {
 		return
 	}
 
+	// log request info
+	log.Printf("INFO: create request [%s/%s]", ns, req.Id())
+	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+
 	o, err := s.es.Create(req)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
@@ -203,11 +213,6 @@ func (s *serviceImpl) CreateObject(c *gin.Context) {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	// cleanup the return object
-	//o.SetFiles(nil)
-	//o.SetMetadata(nil)
-	//o.SetFields(uvaeasystore.DefaultEasyStoreFields())
 
 	c.JSON(http.StatusCreated, o)
 }
@@ -242,17 +247,16 @@ func (s *serviceImpl) UpdateObject(c *gin.Context) {
 		return
 	}
 
+	// log request info
+	log.Printf("INFO: update request [%s/%s] (attribs %s)", ns, id, attribs)
+	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+
 	o, err := s.es.Update(req, components)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	// cleanup the return object
-	//o.SetFiles(nil)
-	//o.SetMetadata(nil)
-	//o.SetFields(uvaeasystore.DefaultEasyStoreFields())
 
 	c.JSON(http.StatusOK, o)
 }
@@ -270,8 +274,11 @@ func (s *serviceImpl) DeleteObject(c *gin.Context) {
 	attribs := c.DefaultQuery("attribs", "none")
 	components := decodeComponents(attribs)
 
-	o := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
-	_, err := s.es.Delete(o, components)
+	// log request info
+	log.Printf("INFO: delete request [%s/%s] (attribs %s)", ns, id, attribs)
+
+	obj := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
+	_, err := s.es.Delete(obj, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
@@ -285,6 +292,49 @@ func (s *serviceImpl) DeleteObject(c *gin.Context) {
 	// standard delete response
 	r := emptyStruct{}
 	c.JSON(http.StatusNoContent, r)
+}
+
+// RenameBlob deletes a single object
+func (s *serviceImpl) RenameBlob(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+
+	// need to include the vtag
+	vtag := c.DefaultQuery("vtag", "unknown")
+
+	// which components from the object are being requested?
+	attribs := c.DefaultQuery("attribs", "none")
+	components := decodeComponents(attribs)
+
+	var req uvaeasystore.RenameBlobRequest
+	if jsonErr := c.BindJSON(&req); jsonErr != nil {
+		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
+		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
+		return
+	}
+
+	// log request info
+	log.Printf("INFO: rename blob request [%s/%s] (attribs %s)", ns, id, attribs)
+	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+
+	obj := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
+	ret, err := s.es.Rename(obj, components, req.CurrentName, req.NewName)
+	if err != nil {
+		if errors.Is(err, uvaeasystore.ErrNotFound) {
+			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
+			return
+		}
+		if errors.Is(err, uvaeasystore.ErrAlreadyExists) {
+			c.String(http.StatusConflict, uvaeasystore.ErrAlreadyExists.Error())
+			return
+		}
+		log.Printf("ERROR: %s", err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, ret)
 }
 
 func decodeComponents(attribs string) uvaeasystore.EasyStoreComponents {
