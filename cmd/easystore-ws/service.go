@@ -60,8 +60,8 @@ func (s *serviceImpl) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, hcMap)
 }
 
-// GetObject gets a single object
-func (s *serviceImpl) GetObject(c *gin.Context) {
+// ObjectGet gets a single object
+func (s *serviceImpl) ObjectGet(c *gin.Context) {
 
 	ns := c.Param("ns")
 	id := c.Param("id")
@@ -87,8 +87,8 @@ func (s *serviceImpl) GetObject(c *gin.Context) {
 	c.JSON(http.StatusOK, o)
 }
 
-// GetObjects gets a list of objects
-func (s *serviceImpl) GetObjects(c *gin.Context) {
+// ObjectsGet gets a list of objects
+func (s *serviceImpl) ObjectsGet(c *gin.Context) {
 
 	ns := c.Param("ns")
 
@@ -136,7 +136,7 @@ func (s *serviceImpl) GetObjects(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (s *serviceImpl) SearchObjects(c *gin.Context) {
+func (s *serviceImpl) ObjectsSearch(c *gin.Context) {
 
 	ns := c.Param("ns")
 
@@ -184,7 +184,7 @@ func (s *serviceImpl) SearchObjects(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (s *serviceImpl) CreateObject(c *gin.Context) {
+func (s *serviceImpl) ObjectCreate(c *gin.Context) {
 
 	ns := c.Param("ns")
 
@@ -206,7 +206,7 @@ func (s *serviceImpl) CreateObject(c *gin.Context) {
 	log.Printf("INFO: create request [%s/%s]", ns, req.Id())
 	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
 
-	o, err := s.es.Create(req)
+	o, err := s.es.ObjectCreate(req)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
 		//c.AbortWithStatus(http.StatusInternalServerError)
@@ -217,7 +217,7 @@ func (s *serviceImpl) CreateObject(c *gin.Context) {
 	c.JSON(http.StatusCreated, o)
 }
 
-func (s *serviceImpl) UpdateObject(c *gin.Context) {
+func (s *serviceImpl) ObjectUpdate(c *gin.Context) {
 
 	ns := c.Param("ns")
 	id := c.Param("id")
@@ -251,7 +251,7 @@ func (s *serviceImpl) UpdateObject(c *gin.Context) {
 	log.Printf("INFO: update request [%s/%s] (attribs %s)", ns, id, attribs)
 	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
 
-	o, err := s.es.Update(req, components)
+	o, err := s.es.ObjectUpdate(req, components)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
 		c.String(http.StatusInternalServerError, err.Error())
@@ -261,8 +261,8 @@ func (s *serviceImpl) UpdateObject(c *gin.Context) {
 	c.JSON(http.StatusOK, o)
 }
 
-// DeleteObject deletes a single object
-func (s *serviceImpl) DeleteObject(c *gin.Context) {
+// ObjectDelete deletes a single object
+func (s *serviceImpl) ObjectDelete(c *gin.Context) {
 
 	ns := c.Param("ns")
 	id := c.Param("id")
@@ -278,7 +278,7 @@ func (s *serviceImpl) DeleteObject(c *gin.Context) {
 	log.Printf("INFO: delete request [%s/%s] (attribs %s)", ns, id, attribs)
 
 	obj := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
-	_, err := s.es.Delete(obj, components)
+	_, err := s.es.ObjectDelete(obj, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
@@ -294,48 +294,138 @@ func (s *serviceImpl) DeleteObject(c *gin.Context) {
 	c.JSON(http.StatusNoContent, r)
 }
 
-// RenameBlob deletes a single object
-func (s *serviceImpl) RenameBlob(c *gin.Context) {
+func (s *serviceImpl) FileGet(c *gin.Context) {
+	c.String(http.StatusNotImplemented, "not implemented yet")
+	return
+}
+
+func (s *serviceImpl) FileCreate(c *gin.Context) {
 
 	ns := c.Param("ns")
 	id := c.Param("id")
 
-	// need to include the vtag
-	vtag := c.DefaultQuery("vtag", "unknown")
-
-	// which components from the object are being requested?
-	attribs := c.DefaultQuery("attribs", "none")
-	components := decodeComponents(attribs)
-
-	var req uvaeasystore.RenameBlobRequest
+	req := uvaeasystore.NewEasyStoreBlob("", "", nil)
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
 		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
 		return
 	}
 
-	// log request info
-	log.Printf("INFO: rename blob request [%s/%s] (attribs %s)", ns, id, attribs)
-	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
-
-	obj := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
-	ret, err := s.es.Rename(obj, components, req.CurrentName, req.NewName)
+	err := s.es.FileCreate(ns, id, req)
 	if err != nil {
-		if errors.Is(err, uvaeasystore.ErrNotFound) {
-			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
-			return
-		}
-		if errors.Is(err, uvaeasystore.ErrAlreadyExists) {
-			c.String(http.StatusConflict, uvaeasystore.ErrAlreadyExists.Error())
-			return
-		}
 		log.Printf("ERROR: %s", err.Error())
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, ret)
+	// standard delete response
+	r := emptyStruct{}
+	c.JSON(http.StatusNoContent, r)
 }
+
+func (s *serviceImpl) FileUpdate(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+
+	req := uvaeasystore.NewEasyStoreBlob("", "", nil)
+	if jsonErr := c.BindJSON(&req); jsonErr != nil {
+		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
+		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
+		return
+	}
+
+	err := s.es.FileUpdate(ns, id, req)
+	if err != nil {
+		log.Printf("ERROR: %s", err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// standard delete response
+	r := emptyStruct{}
+	c.JSON(http.StatusNoContent, r)
+}
+
+func (s *serviceImpl) FileRename(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+	name := c.Param("name")
+	newName := c.Query("new")
+
+	err := s.es.FileRename(ns, id, name, newName)
+	if err != nil {
+		log.Printf("ERROR: %s", err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// standard delete response
+	r := emptyStruct{}
+	c.JSON(http.StatusNoContent, r)
+}
+
+func (s *serviceImpl) FileDelete(c *gin.Context) {
+	ns := c.Param("ns")
+	id := c.Param("id")
+	name := c.Param("name")
+
+	err := s.es.FileDelete(ns, id, name)
+	if err != nil {
+		log.Printf("ERROR: %s", err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// standard delete response
+	r := emptyStruct{}
+	c.JSON(http.StatusNoContent, r)
+}
+
+// FIXME retire
+// RenameBlob deletes a single object
+//func (s *serviceImpl) RenameBlob(c *gin.Context) {
+//
+//	ns := c.Param("ns")
+//	id := c.Param("id")
+//
+//	// need to include the vtag
+//	vtag := c.DefaultQuery("vtag", "unknown")
+//
+//	// which components from the object are being requested?
+//	attribs := c.DefaultQuery("attribs", "none")
+//	components := decodeComponents(attribs)
+//
+//	var req uvaeasystore.RenameBlobRequest
+//	if jsonErr := c.BindJSON(&req); jsonErr != nil {
+//		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
+//		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
+//		return
+//	}
+//
+//	// log request info
+//	log.Printf("INFO: rename blob request [%s/%s] (attribs %s)", ns, id, attribs)
+//	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+//
+//	obj := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
+//	ret, err := s.es.Rename(obj, components, req.CurrentName, req.NewName)
+//	if err != nil {
+//		if errors.Is(err, uvaeasystore.ErrNotFound) {
+//			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
+//			return
+//		}
+//		if errors.Is(err, uvaeasystore.ErrAlreadyExists) {
+//			c.String(http.StatusConflict, uvaeasystore.ErrAlreadyExists.Error())
+//			return
+//		}
+//		log.Printf("ERROR: %s", err.Error())
+//		c.String(http.StatusInternalServerError, err.Error())
+//		return
+//	}
+//
+//	c.JSON(http.StatusOK, ret)
+//}
 
 func decodeComponents(attribs string) uvaeasystore.EasyStoreComponents {
 	// short circuit special case
