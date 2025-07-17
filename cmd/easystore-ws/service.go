@@ -73,7 +73,7 @@ func (s *serviceImpl) ObjectGet(c *gin.Context) {
 	// log request info
 	log.Printf("INFO: get object request [%s/%s] (attribs %s)", ns, id, attribs)
 
-	o, err := s.es.GetByKey(ns, id, components)
+	o, err := s.es.ObjectGetByKey(ns, id, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
@@ -107,7 +107,7 @@ func (s *serviceImpl) ObjectsGet(c *gin.Context) {
 	log.Printf("INFO: get objects request [%s] (attribs %s)", ns, attribs)
 	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
 
-	results, err := s.es.GetByKeys(ns, req.Ids, components)
+	results, err := s.es.ObjectGetByKeys(ns, req.Ids, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
@@ -155,7 +155,7 @@ func (s *serviceImpl) ObjectsSearch(c *gin.Context) {
 	log.Printf("INFO: find request [%s] (attribs %s)", ns, attribs)
 	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
 
-	results, err := s.es.GetByFields(ns, req, components)
+	results, err := s.es.ObjectGetByFields(ns, req, components)
 	if err != nil {
 		if errors.Is(err, uvaeasystore.ErrNotFound) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
