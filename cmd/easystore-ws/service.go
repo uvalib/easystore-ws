@@ -79,8 +79,7 @@ func (s *serviceImpl) ObjectGet(c *gin.Context) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -113,8 +112,7 @@ func (s *serviceImpl) ObjectsGet(c *gin.Context) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -161,8 +159,7 @@ func (s *serviceImpl) ObjectsSearch(c *gin.Context) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -208,9 +205,7 @@ func (s *serviceImpl) ObjectCreate(c *gin.Context) {
 
 	o, err := s.es.ObjectCreate(req)
 	if err != nil {
-		log.Printf("ERROR: %s", err.Error())
-		//c.AbortWithStatus(http.StatusInternalServerError)
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -253,8 +248,7 @@ func (s *serviceImpl) ObjectUpdate(c *gin.Context) {
 
 	o, err := s.es.ObjectUpdate(req, components)
 	if err != nil {
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -284,8 +278,7 @@ func (s *serviceImpl) ObjectDelete(c *gin.Context) {
 			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
 			return
 		}
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -313,8 +306,7 @@ func (s *serviceImpl) FileCreate(c *gin.Context) {
 
 	err := s.es.FileCreate(ns, id, req)
 	if err != nil {
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -337,8 +329,7 @@ func (s *serviceImpl) FileUpdate(c *gin.Context) {
 
 	err := s.es.FileUpdate(ns, id, req)
 	if err != nil {
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -356,8 +347,7 @@ func (s *serviceImpl) FileRename(c *gin.Context) {
 
 	err := s.es.FileRename(ns, id, name, newName)
 	if err != nil {
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -373,8 +363,7 @@ func (s *serviceImpl) FileDelete(c *gin.Context) {
 
 	err := s.es.FileDelete(ns, id, name)
 	if err != nil {
-		log.Printf("ERROR: %s", err.Error())
-		c.String(http.StatusInternalServerError, err.Error())
+		c.String(mapEsErrorToHttpError(err), err.Error())
 		return
 	}
 
@@ -383,49 +372,32 @@ func (s *serviceImpl) FileDelete(c *gin.Context) {
 	c.JSON(http.StatusNoContent, r)
 }
 
-// FIXME retire
-// RenameBlob deletes a single object
-//func (s *serviceImpl) RenameBlob(c *gin.Context) {
-//
-//	ns := c.Param("ns")
-//	id := c.Param("id")
-//
-//	// need to include the vtag
-//	vtag := c.DefaultQuery("vtag", "unknown")
-//
-//	// which components from the object are being requested?
-//	attribs := c.DefaultQuery("attribs", "none")
-//	components := decodeComponents(attribs)
-//
-//	var req uvaeasystore.RenameBlobRequest
-//	if jsonErr := c.BindJSON(&req); jsonErr != nil {
-//		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
-//		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
-//		return
-//	}
-//
-//	// log request info
-//	log.Printf("INFO: rename blob request [%s/%s] (attribs %s)", ns, id, attribs)
-//	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
-//
-//	obj := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
-//	ret, err := s.es.Rename(obj, components, req.CurrentName, req.NewName)
-//	if err != nil {
-//		if errors.Is(err, uvaeasystore.ErrNotFound) {
-//			c.String(http.StatusNotFound, uvaeasystore.ErrNotFound.Error())
-//			return
-//		}
-//		if errors.Is(err, uvaeasystore.ErrAlreadyExists) {
-//			c.String(http.StatusConflict, uvaeasystore.ErrAlreadyExists.Error())
-//			return
-//		}
-//		log.Printf("ERROR: %s", err.Error())
-//		c.String(http.StatusInternalServerError, err.Error())
-//		return
-//	}
-//
-//	c.JSON(http.StatusOK, ret)
-//}
+func mapEsErrorToHttpError(err error) int {
+
+	if strings.Contains(err.Error(), uvaeasystore.ErrBadParameter.Error()) {
+		log.Printf("ERROR: %s", err.Error())
+		return http.StatusBadRequest
+	}
+	if strings.Contains(err.Error(), uvaeasystore.ErrFileNotFound.Error()) {
+		log.Printf("WARNING: %s", err.Error())
+		return http.StatusNotFound
+	}
+	if strings.Contains(err.Error(), uvaeasystore.ErrNotFound.Error()) {
+		log.Printf("WARNING: %s", err.Error())
+		return http.StatusNotFound
+	}
+	if strings.Contains(err.Error(), uvaeasystore.ErrStaleObject.Error()) {
+		log.Printf("WARNING: %s", err.Error())
+		return http.StatusConflict
+	}
+	if strings.Contains(err.Error(), uvaeasystore.ErrAlreadyExists.Error()) {
+		log.Printf("WARNING: %s", err.Error())
+		return http.StatusConflict
+	}
+
+	log.Printf("ERROR: %s", err.Error())
+	return http.StatusInternalServerError
+}
 
 func decodeComponents(attribs string) uvaeasystore.EasyStoreComponents {
 	// short circuit special case
