@@ -71,7 +71,13 @@ func (s *serviceImpl) ObjectGet(c *gin.Context) {
 	components := decodeComponents(attribs)
 
 	// log request info
-	log.Printf("INFO: get object request [%s/%s] (attribs %s)", ns, id, attribs)
+	if s.cfg.Debug == true {
+		log.Printf("INFO: get object request [%s/%s] (attribs %s)", ns, id, attribs)
+	}
+
+	// grab the access lock
+	accessLock(id)
+	defer accessUnlock(id)
 
 	o, err := s.es.ObjectGetByKey(ns, id, components)
 	if err != nil {
@@ -103,8 +109,14 @@ func (s *serviceImpl) ObjectsGet(c *gin.Context) {
 	}
 
 	// log request info
-	log.Printf("INFO: get objects request [%s] (attribs %s)", ns, attribs)
-	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	if s.cfg.Debug == true {
+		log.Printf("INFO: get objects request [%s] (attribs %s)", ns, attribs)
+		log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	}
+
+	// grab the access lock
+	//accessLock(id)
+	//defer accessUnlock(id)
 
 	results, err := s.es.ObjectGetByKeys(ns, req.Ids, components)
 	if err != nil {
@@ -150,8 +162,10 @@ func (s *serviceImpl) ObjectsSearch(c *gin.Context) {
 	}
 
 	// log request info
-	log.Printf("INFO: find request [%s] (attribs %s)", ns, attribs)
-	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	if s.cfg.Debug == true {
+		log.Printf("INFO: find request [%s] (attribs %s)", ns, attribs)
+		log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	}
 
 	results, err := s.es.ObjectGetByFields(ns, req, components)
 	if err != nil {
@@ -200,8 +214,14 @@ func (s *serviceImpl) ObjectCreate(c *gin.Context) {
 	}
 
 	// log request info
-	log.Printf("INFO: create request [%s/%s]", ns, req.Id())
-	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	if s.cfg.Debug == true {
+		log.Printf("INFO: create request [%s/%s]", ns, req.Id())
+		log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	}
+
+	// grab the access lock
+	accessLock(req.Id())
+	defer accessUnlock(req.Id())
 
 	o, err := s.es.ObjectCreate(req)
 	if err != nil {
@@ -243,8 +263,14 @@ func (s *serviceImpl) ObjectUpdate(c *gin.Context) {
 	}
 
 	// log request info
-	log.Printf("INFO: update request [%s/%s] (attribs %s)", ns, id, attribs)
-	log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	if s.cfg.Debug == true {
+		log.Printf("INFO: update request [%s/%s] (attribs %s)", ns, id, attribs)
+		log.Printf("DEBUG: req [%s]", spew.Sdump(req))
+	}
+
+	// grab the access lock
+	accessLock(req.Id())
+	defer accessUnlock(req.Id())
 
 	o, err := s.es.ObjectUpdate(req, components)
 	if err != nil {
@@ -269,7 +295,13 @@ func (s *serviceImpl) ObjectDelete(c *gin.Context) {
 	components := decodeComponents(attribs)
 
 	// log request info
-	log.Printf("INFO: delete request [%s/%s] (attribs %s)", ns, id, attribs)
+	if s.cfg.Debug == true {
+		log.Printf("INFO: delete request [%s/%s] (attribs %s)", ns, id, attribs)
+	}
+
+	// grab the access lock
+	accessLock(id)
+	defer accessUnlock(id)
 
 	obj := uvaeasystore.ProxyEasyStoreObject(ns, id, vtag)
 	_, err := s.es.ObjectDelete(obj, components)

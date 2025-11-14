@@ -12,6 +12,7 @@ import (
 // ServiceConfig defines the service configuration parameters
 type ServiceConfig struct {
 	Port  int
+	Debug bool
 	esCfg uvaeasystore.DatastoreS3Config
 	//esCfg uvaeasystore.DatastorePostgresConfig
 }
@@ -57,6 +58,16 @@ func envToInt(env string) int {
 	return n
 }
 
+func envToBool(env string) bool {
+
+	str := envWithDefault(env, "false")
+	b, err := strconv.ParseBool(str)
+	if err != nil {
+		log.Fatalf("cannot convert to bool: [%s]", env)
+	}
+	return b
+}
+
 // LoadConfiguration will load the service configuration from env/cmdline
 // and return a pointer to it. Any failures are fatal.
 func LoadConfiguration() *ServiceConfig {
@@ -64,6 +75,7 @@ func LoadConfiguration() *ServiceConfig {
 	var cfg ServiceConfig
 
 	cfg.Port = envToInt("ES_SERVICE_PORT")
+	cfg.Debug = envToBool("ES_DEBUG")
 
 	cfg.esCfg.Bucket = ensureSetAndNonEmpty("ES_BUCKET")
 	cfg.esCfg.SignerAccessKey = envWithDefault("SIGNER_ACCESS_KEY", "")
@@ -80,6 +92,7 @@ func LoadConfiguration() *ServiceConfig {
 	cfg.esCfg.SourceName = ensureSetAndNonEmpty("ES_SOURCE_NAME")
 
 	log.Printf("[CONFIG] Port                = [%d]", cfg.Port)
+	log.Printf("[CONFIG] Debug               = [%v]", cfg.Debug)
 
 	log.Printf("[CONFIG] Bucket              = [%s]", cfg.esCfg.Bucket)
 	log.Printf("[CONFIG] SignerAccessKey     = [%s]", strings.Repeat("*", len(cfg.esCfg.SignerAccessKey)))
@@ -95,7 +108,9 @@ func LoadConfiguration() *ServiceConfig {
 	log.Printf("[CONFIG] BusName             = [%s]", cfg.esCfg.BusName)
 	log.Printf("[CONFIG] SourceName          = [%s]", cfg.esCfg.SourceName)
 
-	cfg.esCfg.Log = log.Default()
+	if cfg.Debug == true {
+		cfg.esCfg.Log = log.Default()
+	}
 
 	return &cfg
 }
