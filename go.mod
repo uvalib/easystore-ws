@@ -10,7 +10,7 @@ require (
 )
 
 // for local development
-replace github.com/uvalib/easystore/uvaeasystore => ../easystore/uvaeasystore
+//replace github.com/uvalib/easystore/uvaeasystore => ../easystore/uvaeasystore
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.39.6 // indirect

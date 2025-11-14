@@ -112,6 +112,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.3.1 h1:waO7eEiFDwidsBN6agj1vJQ4AG7lh2yqXyOXqhgQuyY=
 github.com/ugorji/go/codec v1.3.1/go.mod h1:pRBVtBSKl77K30Bv8R2P+cLSGaTtex6fsA2Wjqmfxj4=
+github.com/uvalib/easystore/uvaeasystore v0.0.0-20251114150031-31a9cee2eb6c h1:onqOH0az/KYrGrwI5VsCNLVb85Cah1HCkyR0jgD5r+4=
+github.com/uvalib/easystore/uvaeasystore v0.0.0-20251114150031-31a9cee2eb6c/go.mod h1:6JmNsNsXn9kixHN4jU8eLECVI48Z1kTzzm/FHX+eAeA=
 github.com/uvalib/librabus-sdk/uvalibrabus v0.0.0-20250801130056-157231a1fcac h1:8WAZ9xsOK4U4gtDlx7csTNRMLzxXqIo2WipuokkGyco=
 github.com/uvalib/librabus-sdk/uvalibrabus v0.0.0-20250801130056-157231a1fcac/go.mod h1:cITJrlIM3D+iX5y0dnyFWg45MfnmYKFvyHU1Ghj8Tjk=
 go.uber.org/mock v0.6.0 h1:hyF9dfmbgIX5EfOdasqLsWD6xqpNZlXblLB/Dbnwv3Y=
