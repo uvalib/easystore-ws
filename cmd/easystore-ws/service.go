@@ -134,7 +134,10 @@ func (s *serviceImpl) ObjectsGet(c *gin.Context) {
 	// process results as appropriate
 	if results.Count() != 0 {
 		total := results.Count()
-		log.Printf("INFO: located %d object(s)...", total)
+		// log response count
+		if s.cfg.Debug == true {
+			log.Printf("INFO: located %d object(s)...", total)
+		}
 		var obj uvaeasystore.EasyStoreObject
 		obj, err = results.Next()
 		for err == nil {
@@ -183,7 +186,10 @@ func (s *serviceImpl) ObjectsSearch(c *gin.Context) {
 	// process results as appropriate
 	if results.Count() != 0 {
 		total := results.Count()
-		log.Printf("INFO: located %d object(s)...", total)
+		// log response count
+		if s.cfg.Debug == true {
+			log.Printf("INFO: located %d object(s)...", total)
+		}
 		var obj uvaeasystore.EasyStoreObject
 		obj, err = results.Next()
 		for err == nil {
