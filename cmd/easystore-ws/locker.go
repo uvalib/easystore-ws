@@ -11,33 +11,29 @@ import (
 // The nature of easystore updates make them multi-step and non-tractional so access concurrency
 // needs to be managed :(
 
-var locksAccess sync.Mutex
-var locks = make(map[string]*sync.Mutex)
+var locks = sync.Map{}
 
 func accessLock(id string) {
 
-	_, ok := locks[id]
-	if !ok {
-		// lock the lock map
-		locksAccess.Lock()
+	var m *sync.Mutex
+	var ok bool
 
-		// another check now that we have exclusive write access to the lock map
-		_, ok := locks[id]
-		if !ok {
-			locks[id] = &sync.Mutex{}
-		}
-
-		// release the lock map
-		locksAccess.Unlock()
+	a, ok := locks.Load(id)
+	if ok {
+		m = a.(*sync.Mutex)
+	} else {
+		m = &sync.Mutex{}
+		locks.Store(id, m)
 	}
-	locks[id].Lock()
+	m.Lock()
 }
 
 func accessUnlock(id string) {
 
-	_, ok := locks[id]
+	a, ok := locks.Load(id)
 	if ok {
-		locks[id].Unlock()
+		m := a.(*sync.Mutex)
+		m.Unlock()
 	}
 }
 
