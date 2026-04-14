@@ -6,7 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-gonic/gin v1.12.0
-	github.com/uvalib/easystore/uvaeasystore v0.0.0-20260406122410-049755e28072
+	github.com/uvalib/easystore/uvaeasystore v0.0.0-20260413184000-ac1e96bfa2b7
 )
 
 // for local development
