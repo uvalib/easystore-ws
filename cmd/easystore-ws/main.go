@@ -67,6 +67,10 @@ func main() {
 	router.POST("/:ns/:id/file", svc.FileCreate)
 	// update an existing file
 	router.PUT("/:ns/:id/file", svc.FileUpdate)
+	// create a new file, the payload is streamed in the request body
+	router.POST("/:ns/:id/file/:name/content", svc.FileCreateStream)
+	// update an existing file, the payload is streamed in the request body
+	router.PUT("/:ns/:id/file/:name/content", svc.FileUpdateStream)
 	// rename an existing file
 	router.POST("/:ns/:id/file/:name", svc.FileRename)
 	// delete a file

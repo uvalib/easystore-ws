@@ -10,6 +10,9 @@ import (
 	"strings"
 )
 
+// used when a streamed file is supplied without a content type
+var defaultMimeType = "application/octet-stream"
+
 // this is our service implementation
 type serviceImpl struct {
 	es  uvaeasystore.EasyStore
@@ -374,6 +377,71 @@ func (s *serviceImpl) FileUpdate(c *gin.Context) {
 	// standard delete response
 	r := emptyStruct{}
 	c.JSON(http.StatusNoContent, r)
+}
+
+// FileCreateStream creates a new file, the payload is the (streamed) request body
+func (s *serviceImpl) FileCreateStream(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+	name := c.Param("name")
+
+	// log request info
+	if s.cfg.Debug == true {
+		log.Printf("INFO: create file stream request [%s/%s/%s] (%s)", ns, id, name, c.ContentType())
+	}
+
+	req := s.streamedBlob(c, name)
+	defer c.Request.Body.Close()
+
+	err := s.es.FileCreate(ns, id, req)
+	if err != nil {
+		c.String(mapEsErrorToHttpError(err), err.Error())
+		return
+	}
+
+	// standard delete response
+	r := emptyStruct{}
+	c.JSON(http.StatusNoContent, r)
+}
+
+// FileUpdateStream updates an existing file, the payload is the (streamed) request body
+func (s *serviceImpl) FileUpdateStream(c *gin.Context) {
+
+	ns := c.Param("ns")
+	id := c.Param("id")
+	name := c.Param("name")
+
+	// log request info
+	if s.cfg.Debug == true {
+		log.Printf("INFO: update file stream request [%s/%s/%s] (%s)", ns, id, name, c.ContentType())
+	}
+
+	req := s.streamedBlob(c, name)
+	defer c.Request.Body.Close()
+
+	err := s.es.FileUpdate(ns, id, req)
+	if err != nil {
+		c.String(mapEsErrorToHttpError(err), err.Error())
+		return
+	}
+
+	// standard delete response
+	r := emptyStruct{}
+	c.JSON(http.StatusNoContent, r)
+}
+
+// streamedBlob makes a blob whose payload is the request body; it is read as it is written
+// to the datastore so a large file is never held in memory in its entirety
+func (s *serviceImpl) streamedBlob(c *gin.Context, name string) uvaeasystore.EasyStoreBlob {
+
+	// the mime type comes from the request, use a sensible default if it is absent
+	mimeType := c.ContentType()
+	if len(mimeType) == 0 {
+		mimeType = defaultMimeType
+	}
+
+	return uvaeasystore.NewEasyStoreBlobFromReader(name, mimeType, c.Request.Body)
 }
 
 func (s *serviceImpl) FileRename(c *gin.Context) {
