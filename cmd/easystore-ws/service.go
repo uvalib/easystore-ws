@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/gin-gonic/gin"
-	"github.com/uvalib/easystore/uvaeasystore"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/gin-gonic/gin"
+	"github.com/uvalib/easystore/uvaeasystore"
 )
 
 // used when a streamed file is supplied without a content type
@@ -338,7 +339,7 @@ func (s *serviceImpl) FileCreate(c *gin.Context) {
 	ns := c.Param("ns")
 	id := c.Param("id")
 
-	req := uvaeasystore.NewEasyStoreBlob("", "", nil)
+	req := uvaeasystore.NewEasyStoreBlobFromBuffer("", "", nil)
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
 		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
@@ -361,7 +362,7 @@ func (s *serviceImpl) FileUpdate(c *gin.Context) {
 	ns := c.Param("ns")
 	id := c.Param("id")
 
-	req := uvaeasystore.NewEasyStoreBlob("", "", nil)
+	req := uvaeasystore.NewEasyStoreBlobFromBuffer("", "", nil)
 	if jsonErr := c.BindJSON(&req); jsonErr != nil {
 		log.Printf("ERROR: Unable to parse request: %s", jsonErr.Error())
 		c.String(http.StatusBadRequest, uvaeasystore.ErrDeserialize.Error())
